@@ -1,0 +1,95 @@
+plugins {
+    id 'net.neoforged.moddev.legacyforge'
+}
+
+base {
+    archivesName = 'cfx-compat-spookydoors'
+}
+
+version = "${mod_version}-mc${minecraft_version}-forge"
+group = maven_group
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
+}
+
+mixin {
+    add sourceSets.main, 'cfx_compat_spookydoors.refmap.json'
+    config 'cfx-compat-spookydoors.mixins.json'
+}
+
+legacyForge {
+    version = "${minecraft_version}-${forge_version}"
+
+    runs {
+        client {
+            client()
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    // Published locally from ../control-flex-api (0.9.3.0 introduces AnalogValues).
+    compileOnly 'com.github.ControlFlexMC:control-flex-api:0.9.3.0'
+    compileOnly 'org.jetbrains:annotations:24.0.1'
+
+    annotationProcessor "org.spongepowered:mixin:${mixin_processor_version}:processor"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+}
+
+processResources {
+    def expandProps = [
+        'mod_id'                  : mod_id,
+        'mod_name'                : mod_name,
+        'mod_version'             : mod_version,
+        'mod_authors'             : mod_authors,
+        'mod_license'             : mod_license,
+        'mod_description'         : mod_description,
+        'minecraft_version'       : minecraft_version,
+        'minecraft_version_range' : minecraft_version_range,
+        'forge_version'           : forge_version,
+        'forge_version_range'     : forge_version_range,
+        'loader_version_range'    : loader_version_range,
+        'java_version'            : java_version,
+        'controlflex_mod_id'      : controlflex_mod_id,
+        'target_mod_id'           : target_mod_id,
+        'target_mod_version_range': target_mod_version_range,
+    ]
+
+    filesMatching(['pack.mcmeta', 'META-INF/mods.toml', '*.mixins.json']) {
+        expand expandProps
+    }
+
+    inputs.properties(expandProps)
+}
+
+jar {
+    manifest {
+        attributes([
+            'MixinConfigs': 'cfx-compat-spookydoors.mixins.json'
+        ])
+    }
+
+    from(file('LICENSE')) { rename { "${it}_${mod_id}" } }
+    finalizedBy 'reobfJar'
+}

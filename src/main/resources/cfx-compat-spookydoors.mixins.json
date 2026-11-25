@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.ifels.cfx.spookydoors.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "cfx_compat_spookydoors.refmap.json",
+  "client": [
+    "MouseHandlerAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

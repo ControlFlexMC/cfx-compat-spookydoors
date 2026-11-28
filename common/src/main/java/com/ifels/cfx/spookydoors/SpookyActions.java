@@ -55,15 +55,11 @@ public final class SpookyActions {
     /**
      * Main-layer HOLD default, mirroring the aiming entry in {@code spookydoors.json}.
      *
-     * <p>Two things need this declaration even though the compat config also seeds the same
-     * bindings:</p>
-     * <ul>
-     *   <li>ControlFlex derives "does {@code isActive()} stay true while the button is held"
-     *       from the binding declared here, not from the one that ends up in effect.</li>
-     *   <li>The game-phase dispatcher re-resolves a registered action through the base layer
-     *       before firing it, so an action that only had a state-scoped binding would never
-     *       activate.</li>
-     * </ul>
+     * <p>The compat config alone is enough on a core that latches a registered action by the mode
+     * that actually fired and resolves state overrides when dispatching (control-flex
+     * {@code 4058359b5}+). This declaration stays because released cores do neither: they read the
+     * mode from this declaration and re-resolve the base layer before firing, so without it the
+     * three actions never activate there.</p>
      *
      * <p>Sharing the left stick with movement is harmless: nothing here acts on the door until
      * the crosshair is on one, and push/pull are only integrated while a grab is held.</p>

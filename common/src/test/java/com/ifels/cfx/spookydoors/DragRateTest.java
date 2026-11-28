@@ -27,8 +27,8 @@ class DragRateTest {
 
     @Test
     void pushAndPullHaveOppositeSigns() {
-        double push = DragRate.oneTick(true, 0.4f, false, false);
-        double idle = DragRate.oneTick(true, 0.0f, false, false);
+        double push = DragRate.oneTick(true, 0.4f, false);
+        double idle = DragRate.oneTick(true, 0.0f, false);
         assertTrue(DragRate.signed(push, idle) > 0.0);
         assertTrue(DragRate.signed(idle, push) < 0.0);
         assertEquals(0.0, DragRate.signed(idle, idle), EPS);
@@ -36,14 +36,14 @@ class DragRateTest {
 
     @Test
     void holdingBothDirectionsCancelsOut() {
-        double both = DragRate.oneTick(true, 0.6f, false, false);
+        double both = DragRate.oneTick(true, 0.6f, false);
         assertEquals(0.0, DragRate.signed(both, both), EPS);
     }
 
     @Test
     void analogTickIsTheRateTimesOneTick() {
         assertEquals(DragRate.curve(0.3f) * DragRate.TICK_SECONDS,
-                DragRate.oneTick(true, 0.3f, true, false), EPS);
+                DragRate.oneTick(true, 0.3f, true), EPS);
     }
 
     @Test
@@ -70,37 +70,53 @@ class DragRateTest {
         assertTrue(seconds > 0.2 && seconds < 0.5, "was " + seconds);
     }
 
-    // ===== digital fallback: one press, one fixed nudge =====
+    // ===== digital binding: held means full deflection =====
 
     @Test
-    void digitalPressMovesTheDoorByAFixedAmount() {
-        assertEquals(DragRate.DIGITAL_STEP_UNITS, DragRate.digitalStep(true, false), EPS);
+    void aHeldDigitalButtonMovesTheDoorEveryTick() {
+        // The whole point of a HOLD binding: the door keeps travelling until it is released,
+        // instead of taking one nudge and stopping (which is what a PRESS binding would do).
+        double oneTick = DragRate.oneTick(false, 0.0f, true);
+        assertTrue(oneTick > 0.0, "a held button must advance on every tick");
+
+        double tenTicks = 0.0;
+        for (int i = 0; i < 10; i++) {
+            tenTicks += DragRate.oneTick(false, 0.0f, true);
+        }
+        assertEquals(oneTick * 10.0, tenTicks, EPS);
     }
 
     @Test
-    void holdingADigitalButtonDoesNotKeepPushing() {
-        assertEquals(0.0, DragRate.digitalStep(true, true), EPS);
-        assertEquals(0.0, DragRate.digitalStep(false, true), EPS);
-        assertEquals(0.0, DragRate.digitalStep(false, false), EPS);
+    void aReleasedDigitalButtonStops() {
+        assertEquals(0.0, DragRate.oneTick(false, 0.0f, false), EPS);
+        // The reported magnitude is irrelevant for a digital binding — only "held" counts.
+        assertEquals(0.0, DragRate.oneTick(false, 1.0f, false), EPS);
     }
 
     @Test
-    void digitalStepIsATwelfthToAnEighthOfTheTravel() {
-        // Coarse enough to see the door move, fine enough to peek in one or two taps.
-        double fraction = DragRate.DIGITAL_STEP_UNITS / DragRate.FULL_TRAVEL_UNITS;
-        assertTrue(fraction >= 1.0 / 12.0 && fraction <= 1.0 / 8.0, "was " + fraction);
+    void aHeldDigitalButtonPushesAsFastAsAFullyDeflectedStick() {
+        assertEquals(DragRate.oneTick(true, 1.0f, false),
+                DragRate.oneTick(false, 0.0f, true), EPS);
     }
 
     @Test
-    void digitalStepIsQuotedInDoorOpenness() {
-        // Spooky Doors multiplies dx by 0.005, so the step must survive that conversion.
-        assertEquals(DragRate.DIGITAL_STEP_FRACTION, DragRate.DIGITAL_STEP_UNITS * 0.005, EPS);
+    void aSingleTickTapIsAVisibleButSmallNudge() {
+        // Coarse enough to see the door move, fine enough to peek with a tap.
+        double fraction = DragRate.DIGITAL_FRACTION_OF_TRAVEL;
+        assertTrue(fraction >= 0.08 && fraction <= 0.2, "was " + fraction);
     }
 
     @Test
-    void digitalBindingIgnoresTheFullDeflectionItReports() {
-        // A pressed face button reads as magnitude 1.0; integrating that as analog would slam the
-        // door at full speed on every tap, which is exactly what the fixed step exists to avoid.
-        assertEquals(DragRate.DIGITAL_STEP_UNITS, DragRate.oneTick(false, 1.0f, true, false), EPS);
+    void digitalTravelIsQuotedInDoorOpenness() {
+        // Spooky Doors multiplies dx by 0.005, so the per-tick step must survive that conversion.
+        assertEquals(DragRate.DIGITAL_FRACTION_OF_TRAVEL,
+                DragRate.DIGITAL_UNITS_PER_TICK * 0.005, EPS);
+    }
+
+    @Test
+    void aHeldDigitalButtonOpensTheDoorInAboutAThirdOfASecond() {
+        double ticks = DragRate.FULL_TRAVEL_UNITS / DragRate.DIGITAL_UNITS_PER_TICK;
+        double seconds = ticks * DragRate.TICK_SECONDS;
+        assertTrue(seconds > 0.2 && seconds < 0.5, "was " + seconds);
     }
 }

@@ -30,8 +30,9 @@ import java.util.Set;
  * forward always means "away from me", from either side of the door.</p>
  *
  * <p>What a direction does depends on how it is bound, and the two can be mixed: a stick or
- * trigger integrates its travel as speed, while a face button, bumper or keyboard key — which
- * has no travel to read — moves the door one fixed step per press. See {@link DragRate}.</p>
+ * trigger integrates its travel as speed, while a face button, bumper or keyboard key — which has
+ * no travel to read — counts as full deflection for as long as it is held. Either way the door
+ * keeps moving until the input is released. See {@link DragRate}.</p>
  */
 public final class DoorDrag {
 
@@ -55,8 +56,6 @@ public final class DoorDrag {
     private static double virtualY;
     private static float pushBaseline;
     private static float pullBaseline;
-    private static boolean pushWasDown;
-    private static boolean pullWasDown;
     private static int cooldown;
 
     private DoorDrag() {
@@ -137,16 +136,12 @@ public final class DoorDrag {
         dragging = true;
         pushBaseline = baselineOf(SpookyAction.PUSH);
         pullBaseline = baselineOf(SpookyAction.PULL);
-        // A button already held when the door was grabbed has already been counted; only a new
-        // press on top of the grab may nudge a digital binding.
-        pushWasDown = SpookyActions.isActive(SpookyAction.PUSH);
-        pullWasDown = SpookyActions.isActive(SpookyAction.PULL);
         LOGGER.debug("[{}] grabbed a door, baselines push={} pull={}",
                 SpookyAction.MOD_ID, pushBaseline, pullBaseline);
     }
 
     /**
-     * One tick of dragging: analog deflection integrates, digital presses nudge once.
+     * One tick of dragging: both input models advance while their binding is held.
      *
      * <p>Each direction is resolved on its own so one analog stick and one digital button can be
      * mixed — for example a stick for pushing and a face button for pulling back.</p>
@@ -162,14 +157,9 @@ public final class DoorDrag {
         boolean pullDown = SpookyActions.isActive(SpookyAction.PULL);
 
         double pushUnits = DragRate.oneTick(pushAnalog,
-                DragRate.delta(magnitudeOf(state, pushButton), pushBaseline),
-                pushDown, pushWasDown);
+                DragRate.delta(magnitudeOf(state, pushButton), pushBaseline), pushDown);
         double pullUnits = DragRate.oneTick(pullAnalog,
-                DragRate.delta(magnitudeOf(state, pullButton), pullBaseline),
-                pullDown, pullWasDown);
-
-        pushWasDown = pushDown;
-        pullWasDown = pullDown;
+                DragRate.delta(magnitudeOf(state, pullButton), pullBaseline), pullDown);
 
         double displacement = DragRate.signed(pushUnits, pullUnits);
         if (displacement == 0.0) {
@@ -185,8 +175,6 @@ public final class DoorDrag {
             return;
         }
         dragging = false;
-        pushWasDown = false;
-        pullWasDown = false;
         if (mc == null) {
             return;
         }
@@ -197,7 +185,8 @@ public final class DoorDrag {
 
     /**
      * Only a stick direction or a trigger has travel worth subtracting. A face button or a
-     * keyboard key is binary, so its baseline stays zero and it works by discrete presses.
+     * keyboard key is binary, so its baseline stays zero and holding it counts as full
+     * deflection.
      */
     private static boolean isAnalog(String button) {
         return button != null && ANALOG_BUTTONS.contains(button);

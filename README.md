@@ -27,9 +27,10 @@ dependencies, and a failure here is contained instead of affecting every player.
   check — the `spookydoors:doors` / `excluded_doors` tags, the door type, the `haunts_doors` /
   `exorcises_doors` items, and the per-door `spooky` flag (read by reflection). A press the door mod
   would decline falls through to vanilla use and would place a block, so it must never be sent.
-* `DragRate` converts stick travel into mouse displacement. An analog binding (stick direction,
-  trigger) integrates its deflection as speed; a digital one (face button, key) moves the door a
-  fixed eighth of its travel per press, because a pressed button has no travel to read.
+* `DragRate` converts the input into mouse displacement, and both kinds advance on every tick. An
+  analog binding (stick direction, trigger) integrates its deflection as speed; a digital one
+  (face button, key) has no travel to read, so holding it counts as full deflection and moves the
+  door at the speed a fully deflected stick would, until it is released.
 * Everything runs off the ControlFlex SPI plugin (`SpookyDoorsPlugin`), so nothing happens until
   ControlFlex reports it is ready.
 

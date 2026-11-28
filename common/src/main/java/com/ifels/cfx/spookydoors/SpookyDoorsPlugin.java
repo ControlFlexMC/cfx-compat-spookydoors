@@ -12,13 +12,17 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Three things happen here, in this order:</p>
  * <ol>
- *   <li>the bundled compat config is exported into ControlFlex's {@code compat/mods} directory,
- *       which adds the aiming-at-a-door state entry — the only place the door bindings exist;</li>
+ *   <li>the bundled compat config is exported into ControlFlex's {@code compat/mods} directory —
+ *       it carries no bindings, only the {@code spookydoors} attribution that puts the three
+ *       actions on that adaptation card and gates the card on this bridge being installed;</li>
  *   <li>the three door actions are declared unbound, grouped under {@code spookydoors} so they
- *       are listed on that adaptation card and nowhere else;</li>
+ *       are listed on that card and nowhere else;</li>
  *   <li>the drag engine is switched on once the API is confirmed new enough to report analog
  *       magnitudes.</li>
  * </ol>
+ *
+ * <p>Bindings are entirely the player's: they pick a layer whose left stick is free (see the
+ * README), which is what keeps the stick from doing double duty. Nothing here seeds a default.</p>
  */
 public final class SpookyDoorsPlugin implements IControlFlexPlugin {
 
@@ -29,11 +33,11 @@ public final class SpookyDoorsPlugin implements IControlFlexPlugin {
      * bindings and {@link com.ifels.controlflex.api.AnalogValues} ({@code 0.9.2.4}) — without the
      * last one a stick's travel cannot be read at all.
      *
-     * <p>The API version cannot express the other half of the requirement: the core must also
-     * latch a registered action by the mode that fired and resolve state overrides when
-     * dispatching (control-flex {@code 4058359b5}+). Older cores pass this check but never fire
-     * an action that is only bound by a state entry, because they read the binding from the base
-     * layer and the hold mode from the registration.</p>
+     * <p>The API version cannot express the other half of the requirement: the core must latch a
+     * registered action by the mode that fired (control-flex {@code 4058359b5}+). Older cores
+     * read that mode from the registration instead, so an action the player bound as HOLD in the
+     * binding screen would still report {@code isActive()} for a single tick — and this mod ships
+     * no declared default to work around it.</p>
      */
     public static final String MIN_API_VERSION = "0.9.2.4";
 
@@ -48,19 +52,19 @@ public final class SpookyDoorsPlugin implements IControlFlexPlugin {
     }
 
     /**
-     * Exports the aiming-door state entry.
+     * Exports the attribution file.
      *
      * <p>ControlFlex installs this before {@code onRegisterActions} and reloads the {@code mods}
-     * layer afterwards, so the entry is active on the same launch that installed it.</p>
+     * layer afterwards, so the card is there on the same launch that installed it.</p>
      */
     @Override
     public void onInstallCompatConfigs(ICompatAssetInstaller installer) {
         if (installer.install(COMPAT_RESOURCE, COMPAT_FILE_NAME)) {
-            LOGGER.info("[{}] installed {} (aiming-door bindings)", SpookyAction.MOD_ID,
+            LOGGER.info("[{}] installed {} (spookydoors adaptation card)", SpookyAction.MOD_ID,
                     COMPAT_FILE_NAME);
         } else {
-            LOGGER.warn("[{}] could not install {} — the three actions will be listed but stay "
-                            + "unbound, because their defaults live in that config",
+            LOGGER.warn("[{}] could not install {} — the three actions may not be grouped under "
+                            + "Spooky Doors, and would then have no card to be bound on",
                     SpookyAction.MOD_ID, COMPAT_FILE_NAME);
         }
     }

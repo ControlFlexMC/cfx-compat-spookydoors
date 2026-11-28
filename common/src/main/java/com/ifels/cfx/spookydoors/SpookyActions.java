@@ -20,11 +20,12 @@ import java.util.Map;
  * {@code spookydoors}, which is both the adaptation card they are listed on and the only context
  * in which they are visible.</p>
  *
- * <p><b>They are registered unbound on purpose.</b> The only source of their bindings is the
- * aiming-at-a-door entry in the bundled {@code spookydoors.json}, so the left stick stays
- * dedicated to movement until the crosshair actually rests on a door. That relies on the core
- * latching a registered action by the mode that fired and honouring state overrides when
- * dispatching — see {@link SpookyDoorsPlugin#MIN_API_VERSION}.</p>
+ * <p><b>They are registered unbound on purpose.</b> Bindings belong to the player: the three
+ * actions are meant to be bound in one layer whose left stick is otherwise free, which is what
+ * stops the stick from driving movement and the door at the same time. Nothing here seeds a
+ * default. That relies on the core latching a registered action by the mode that fired — a HOLD
+ * binding made in the binding screen has to keep {@code isActive()} true while the button is
+ * down — see {@link SpookyDoorsPlugin#MIN_API_VERSION}.</p>
  */
 public final class SpookyActions {
 
@@ -49,9 +50,10 @@ public final class SpookyActions {
     /**
      * The declaration for one action — no {@code defaultBinding}, deliberately.
      *
-     * <p>Bindings come from the compat config's aiming entry instead of registration, so they
-     * exist only while the crosshair is on a door. Package-private so the test can assert that no
-     * default sneaks back in.</p>
+     * <p>A default would put the door on a button before the player chose a layer for it, and
+     * whichever layer shipped it would then collide with that layer's own bindings. The bundled
+     * compat config seeds nothing either, so the binding screen is the single source of truth.
+     * Package-private so the test can assert that no default sneaks back in.</p>
      */
     static ActionRegistration registration(SpookyAction action) {
         return ActionRegistration.builder(action.actionId())

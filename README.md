@@ -46,27 +46,31 @@ grouped under **Spooky Doors** — they are listed on that adaptation card and n
 
 ## Bindings
 
-The actions are registered **unbound**. Their only bindings live in the aiming entry of
-`assets/cfx_compat_spookydoors/compat/spookydoors.json`, which the plugin installs into
-`config/controlflex/compat/mods/`. While the crosshair rests on a door (ControlFlex stabilises the
-aimed block for 4 ticks) that state supplies:
+The actions ship **unbound**: no registration default, and the bundled compat config carries no
+bindings either. You bind them yourself in ControlFlex's binding screen.
 
-| Action | Binding while aiming at a door |
-|---|---|
-| Grab Door | left stick click, hold |
-| Push Door | left stick forward, hold |
-| Pull Door | left stick back, hold |
+A controller button can drive several actions at once, so **the layer you bind them in** is what
+keeps the left stick from doing two things at the same time. Use one layer whose left stick is
+otherwise free:
 
-Releasing the stick lets go: HOLD ends the action and the bridge injects the matching mouse
-release. Outside the aiming state nothing is bound, so the left stick stays dedicated to movement.
-Rebind them on ControlFlex's state page (Mod Adaptation → Spooky Doors → aiming).
+1. Pick a shift layer (`LB` = shift1, `RB` = shift2 by default) and clear that layer's
+   `move_forward` / `move_backward` / `move_left` / `move_right` and `sprint` — they normally sit
+   on the same four directions and on left-stick click.
+2. In that same layer bind Grab Door → left stick click (hold), Push Door → left stick forward
+   (hold), Pull Door → left stick back (hold).
+3. Play: hold the layer button, look at a door, click to grab, push or pull, release to let go.
 
-Push/pull magnitude comes from the bound axis, not from the action, so moving push onto a trigger
+Releasing the stick lets go because HOLD ends the action and the bridge injects the matching mouse
+release. Main works too if you accept the stick walking you at the same time — ControlFlex has no
+per-button exclusivity, so the layer is the contract.
+
+Push/pull magnitude comes from the bound axis, not from the action, so putting push on a trigger
 gives it trigger travel automatically.
 
 > This needs a ControlFlex build that latches a registered action by the mode that actually fired
-> and honours state overrides when dispatching (core `4058359b5`+). Older builds pass the API
-> version check but never fire an action that has no base-layer binding.
+> (core `4058359b5`+). Older builds derive that from the registration instead, so an action you
+> bound as HOLD yourself would report `isActive()` for a single tick and the drag would end
+> immediately.
 
 ## Requirements
 
@@ -74,7 +78,7 @@ gives it trigger travel automatically.
 |---|---|
 | Minecraft | 1.20.1 |
 | Loader | Forge 47+ / Fabric Loader 0.15.11+ (Fabric API) |
-| ControlFlex | 0.9.0+ with API 0.9.2.4 and the state-dispatch fix (`4058359b5`+) — below that the bridge starts but registers no actions, or registers them and never fires them |
+| ControlFlex | 0.9.0+ with API 0.9.2.4 and the fix that latches a registered action by the mode that fired (`4058359b5`+) — below that the bridge starts but registers nothing, or HOLD only lasts a tick |
 | Spooky Doors | 1.20+ — **optional**, the actions simply never target a door without it |
 
 ## Project layout

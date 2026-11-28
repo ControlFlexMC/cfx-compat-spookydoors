@@ -17,26 +17,7 @@
       "version": "",
       "inGameKeys": {},
       "screenKeys": {},
-      "overlayKeys": {},
-      "aiming": [
-        {
-          "targets": [
-            "block:*:*_door"
-          ],
-          "overrideActions": [
-            "cfx_compat_spookydoors:grab",
-            "cfx_compat_spookydoors:push",
-            "cfx_compat_spookydoors:pull"
-          ],
-          "defaults": {
-            "main": {
-              "cfx_compat_spookydoors:grab": "leftStickClick|HOLD",
-              "cfx_compat_spookydoors:push": "leftStickUp|HOLD",
-              "cfx_compat_spookydoors:pull": "leftStickDown|HOLD"
-            }
-          }
-        }
-      ]
+      "overlayKeys": {}
     }
   ]
 }

@@ -42,23 +42,25 @@ Spooky Doors 没有开放"操作这扇门"的 API。它自己监听 `MouseHandle
 
 ## 绑定
 
-三个动作注册时带主层 HOLD 默认绑定，都落在左摇杆上：
+三个动作注册时**不带任何默认绑定**，它们的绑定只存在于
+`assets/cfx_compat_spookydoors/compat/spookydoors.json` 的 aiming 条目里（插件会把它安装到
+`config/controlflex/compat/mods/`）。准星落在门上时（ControlFlex 会先把瞄准目标稳定 4 tick），
+由这条状态提供：
 
-| 动作 | 默认绑定 |
+| 动作 | 瞄准门时的绑定 |
 |---|---|
 | 抓住门 | 左摇杆按下，按住 |
 | 推门 | 左摇杆前，按住 |
 | 拉门 | 左摇杆后，按住 |
 
-松开摇杆即松手：HOLD 到期动作失效，桥随后补发对应的鼠标抬起。这些绑定只在准星对着门时才有意义
-——抓取在注入按下之前就会先被拒，推/拉也只在抓住门期间参与积分——所以和移动共用左摇杆没有代价。
-
-jar 内另带 `assets/cfx_compat_spookydoors/compat/spookydoors.json`，插件会把它安装到
-`config/controlflex/compat/mods/`。它声明一条 **aiming** 状态条目（`block:*:*_door`），默认值与
-上面三项一致，因此会出现在 ControlFlex 的状态页（模组适配 → Spooky Doors → aiming）里，可以按状态
-单独改键；准星落在门上时，状态绑定优先于基础绑定。
+松开摇杆即松手：HOLD 到期动作失效，桥随后补发对应的鼠标抬起。不瞄准门时三个动作完全没有绑定，
+左摇杆仍然只负责移动；要改键去 ControlFlex 的状态页（模组适配 → Spooky Doors → aiming）。
 
 推/拉的幅度取自绑定轴本身而不是动作，所以把推门改绑到扳机，它自然就有扳机行程。
+
+> 这要求 ControlFlex 的 core 已按「实际触发的 mode」锁存注册动作、派发时解析状态覆盖
+> （control-flex `4058359b5`+）。更早的构建能通过 API 版本检查，但没有基础层绑定的动作永远
+> 不会触发。
 
 ## 依赖
 
@@ -66,7 +68,7 @@ jar 内另带 `assets/cfx_compat_spookydoors/compat/spookydoors.json`，插件�
 |---|---|
 | Minecraft | 1.20.1 |
 | 加载器 | Forge 47+ / Fabric Loader 0.15.11+（需 Fabric API） |
-| ControlFlex | 0.9.0+——低于 API 0.9.2.4 时桥能启动但不注册动作（没有原生动作 API，也读不到模拟量） |
+| ControlFlex | 0.9.0+，且需 API 0.9.2.4 + 状态派发修复（`4058359b5`+）——更早的构建要么不注册动作，要么注册了但永远不触发 |
 | Spooky Doors | 1.20+——**可选**，没有它动作只是永远瞄不到门 |
 
 ## 工程结构

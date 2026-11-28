@@ -46,27 +46,27 @@ grouped under **Spooky Doors** — they are listed on that adaptation card and n
 
 ## Bindings
 
-The actions are registered with main-layer HOLD defaults on the left stick:
+The actions are registered **unbound**. Their only bindings live in the aiming entry of
+`assets/cfx_compat_spookydoors/compat/spookydoors.json`, which the plugin installs into
+`config/controlflex/compat/mods/`. While the crosshair rests on a door (ControlFlex stabilises the
+aimed block for 4 ticks) that state supplies:
 
-| Action | Default |
+| Action | Binding while aiming at a door |
 |---|---|
 | Grab Door | left stick click, hold |
 | Push Door | left stick forward, hold |
 | Pull Door | left stick back, hold |
 
 Releasing the stick lets go: HOLD ends the action and the bridge injects the matching mouse
-release. The bindings are inert unless the crosshair is on a door — the grab is rejected before
-any press is injected, and push/pull are only integrated while a grab is held — so sharing the
-left stick with movement costs nothing.
-
-The jar also carries `assets/cfx_compat_spookydoors/compat/spookydoors.json`, which the plugin
-installs into `config/controlflex/compat/mods/`. It declares an **aiming** state entry
-(`block:*:*_door`) that mirrors the same three defaults, so they show up on ControlFlex's state
-page (Mod Adaptation → Spooky Doors → aiming) and can be rebound per state; while the crosshair
-rests on a door, the state binding wins over the base one.
+release. Outside the aiming state nothing is bound, so the left stick stays dedicated to movement.
+Rebind them on ControlFlex's state page (Mod Adaptation → Spooky Doors → aiming).
 
 Push/pull magnitude comes from the bound axis, not from the action, so moving push onto a trigger
 gives it trigger travel automatically.
+
+> This needs a ControlFlex build that latches a registered action by the mode that actually fired
+> and honours state overrides when dispatching (core `4058359b5`+). Older builds pass the API
+> version check but never fire an action that has no base-layer binding.
 
 ## Requirements
 
@@ -74,7 +74,7 @@ gives it trigger travel automatically.
 |---|---|
 | Minecraft | 1.20.1 |
 | Loader | Forge 47+ / Fabric Loader 0.15.11+ (Fabric API) |
-| ControlFlex | 0.9.0+ — below API 0.9.2.4 the bridge starts but registers no actions (no native actions, no analog magnitudes) |
+| ControlFlex | 0.9.0+ with API 0.9.2.4 and the state-dispatch fix (`4058359b5`+) — below that the bridge starts but registers no actions, or registers them and never fires them |
 | Spooky Doors | 1.20+ — **optional**, the actions simply never target a door without it |
 
 ## Project layout

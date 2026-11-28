@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
  * <p>Three things happen here, in this order:</p>
  * <ol>
  *   <li>the bundled compat config is exported into ControlFlex's {@code compat/mods} directory,
- *       which adds the aiming-at-a-door state entry (same defaults, rebindable per state);</li>
- *   <li>the three door actions are declared, grouped under {@code spookydoors} so they are listed
- *       on that adaptation card and nowhere else;</li>
+ *       which adds the aiming-at-a-door state entry — the only place the door bindings exist;</li>
+ *   <li>the three door actions are declared unbound, grouped under {@code spookydoors} so they
+ *       are listed on that adaptation card and nowhere else;</li>
  *   <li>the drag engine is switched on once the API is confirmed new enough to report analog
  *       magnitudes.</li>
  * </ol>
@@ -28,6 +28,12 @@ public final class SpookyDoorsPlugin implements IControlFlexPlugin {
      * First API release with native action registration ({@code 0.9.2.2}), layer-scoped default
      * bindings and {@link com.ifels.controlflex.api.AnalogValues} ({@code 0.9.2.4}) — without the
      * last one a stick's travel cannot be read at all.
+     *
+     * <p>The API version cannot express the other half of the requirement: the core must also
+     * latch a registered action by the mode that fired and resolve state overrides when
+     * dispatching (control-flex {@code 4058359b5}+). Older cores pass this check but never fire
+     * an action that is only bound by a state entry, because they read the binding from the base
+     * layer and the hold mode from the registration.</p>
      */
     public static final String MIN_API_VERSION = "0.9.2.4";
 

@@ -2,12 +2,8 @@ package com.ifels.cfx.spookydoors;
 
 import com.ifels.controlflex.api.ActionLayer;
 import com.ifels.controlflex.api.ActionRegistration;
-import com.ifels.controlflex.api.BindingLayer;
-import com.ifels.controlflex.api.ButtonName;
-import com.ifels.controlflex.api.DefaultBinding;
 import com.ifels.controlflex.api.IActionRegistrar;
 import com.ifels.controlflex.api.IControlFlexAction;
-import com.ifels.controlflex.api.TriggerMode;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -23,6 +19,12 @@ import java.util.Map;
  * vanilla controls screen and never write global key state. {@code groupModId} points at
  * {@code spookydoors}, which is both the adaptation card they are listed on and the only context
  * in which they are visible.</p>
+ *
+ * <p><b>They are registered unbound on purpose.</b> The only source of their bindings is the
+ * aiming-at-a-door entry in the bundled {@code spookydoors.json}, so the left stick stays
+ * dedicated to movement until the crosshair actually rests on a door. That relies on the core
+ * latching a registered action by the mode that fired and honouring state overrides when
+ * dispatching — see {@link SpookyDoorsPlugin#MIN_API_VERSION}.</p>
  */
 public final class SpookyActions {
 
@@ -34,15 +36,7 @@ public final class SpookyActions {
 
     public static void register(IActionRegistrar registrar) {
         for (SpookyAction action : SpookyAction.values()) {
-            IControlFlexAction handle = registrar.register(ActionRegistration
-                    .builder(action.actionId())
-                    .nameKey(action.nameKey())
-                    .groupModId(SpookyAction.TARGET_MOD_ID)
-                    // In-game only: the door is dragged while playing, never from a screen.
-                    .layer(ActionLayer.IN_GAME)
-                    .defaultBinding(holdDeclaration(action))
-                    .build());
-            HANDLES.put(action, handle);
+            HANDLES.put(action, registrar.register(registration(action)));
         }
     }
 
@@ -53,30 +47,18 @@ public final class SpookyActions {
     }
 
     /**
-     * Main-layer HOLD default, mirroring the aiming entry in {@code spookydoors.json}.
+     * The declaration for one action — no {@code defaultBinding}, deliberately.
      *
-     * <p>The compat config alone is enough on a core that latches a registered action by the mode
-     * that actually fired and resolves state overrides when dispatching (control-flex
-     * {@code 4058359b5}+). This declaration stays because released cores do neither: they read the
-     * mode from this declaration and re-resolve the base layer before firing, so without it the
-     * three actions never activate there.</p>
-     *
-     * <p>Sharing the left stick with movement is harmless: nothing here acts on the door until
-     * the crosshair is on one, and push/pull are only integrated while a grab is held.</p>
+     * <p>Bindings come from the compat config's aiming entry instead of registration, so they
+     * exist only while the crosshair is on a door. Package-private so the test can assert that no
+     * default sneaks back in.</p>
      */
-    static DefaultBinding holdDeclaration(SpookyAction action) {
-        switch (action) {
-            case GRAB:
-                return DefaultBinding.of(ButtonName.LEFT_STICK_CLICK, TriggerMode.HOLD)
-                        .inLayer(BindingLayer.MAIN);
-            case PUSH:
-                return DefaultBinding.of(ButtonName.LEFT_STICK_UP, TriggerMode.HOLD)
-                        .inLayer(BindingLayer.MAIN);
-            case PULL:
-                return DefaultBinding.of(ButtonName.LEFT_STICK_DOWN, TriggerMode.HOLD)
-                        .inLayer(BindingLayer.MAIN);
-            default:
-                return null;
-        }
+    static ActionRegistration registration(SpookyAction action) {
+        return ActionRegistration.builder(action.actionId())
+                .nameKey(action.nameKey())
+                .groupModId(SpookyAction.TARGET_MOD_ID)
+                // In-game only: the door is dragged while playing, never from a screen.
+                .layer(ActionLayer.IN_GAME)
+                .build();
     }
 }

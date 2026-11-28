@@ -4,28 +4,28 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.ifels.controlflex.api.BindingLayer;
-import com.ifels.controlflex.api.ButtonName;
-import com.ifels.controlflex.api.DefaultBinding;
-import com.ifels.controlflex.api.TriggerMode;
+import com.ifels.controlflex.api.ActionLayer;
+import com.ifels.controlflex.api.ActionRegistration;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The door bindings exist twice — as a registration default (what the dispatcher resolves) and as
- * the aiming entry in the bundled compat config (what the state page shows). These tests keep the
- * two in step and pin the layout ControlFlex documents.
+ * The door actions are declared unbound; every binding they ever get comes from the aiming entry
+ * in the bundled compat config. These tests keep it that way and pin the layout ControlFlex
+ * documents.
  */
 class SpookyActionsTest {
 
@@ -33,49 +33,52 @@ class SpookyActionsTest {
             "/assets/cfx_compat_spookydoors/compat/spookydoors.json";
 
     @Test
-    void everyActionDeclaresAHoldDefaultScopedToMain() {
+    void actionsAreRegisteredWithoutADefaultBinding() {
         for (SpookyAction action : SpookyAction.values()) {
-            DefaultBinding declared = SpookyActions.holdDeclaration(action);
-            assertNotNull(declared, action.name());
-            assertEquals(TriggerMode.HOLD, declared.mode(), action.name());
-            // A HOLD declaration that also seeded shift layers would give the door a second,
-            // invisible binding there; main is the only layer the layout asks for.
-            assertEquals(Set.of(BindingLayer.MAIN), declared.layers(), action.name());
+            ActionRegistration registration = SpookyActions.registration(action);
+            // A registration default would bind the left stick during normal movement; the
+            // aiming entry is the only place these bindings are supposed to exist.
+            assertNull(registration.defaultBinding(), action.name());
         }
     }
 
     @Test
-    void defaultsUseTheLeftStickAsSpecified() {
-        assertEquals(ButtonName.LEFT_STICK_CLICK,
-                SpookyActions.holdDeclaration(SpookyAction.GRAB).button());
-        assertEquals(ButtonName.LEFT_STICK_UP,
-                SpookyActions.holdDeclaration(SpookyAction.PUSH).button());
-        assertEquals(ButtonName.LEFT_STICK_DOWN,
-                SpookyActions.holdDeclaration(SpookyAction.PULL).button());
+    void actionsAreScopedToSpookyDoorsAndInGameOnly() {
+        for (SpookyAction action : SpookyAction.values()) {
+            ActionRegistration registration = SpookyActions.registration(action);
+            assertEquals(SpookyAction.TARGET_MOD_ID, registration.groupModId(), action.name());
+            assertEquals(EnumSet.of(ActionLayer.IN_GAME), registration.layers(), action.name());
+            assertTrue(registration.targetClasses().isEmpty(), action.name());
+        }
     }
 
     @Test
-    void compatConfigMirrorsTheDeclaredDefaults() throws Exception {
-        JsonObject aiming = firstAimingEntry();
+    void compatConfigBindsEveryActionToTheLeftStick() throws Exception {
         Map<String, String> expected = new LinkedHashMap<String, String>();
-        for (SpookyAction action : SpookyAction.values()) {
-            DefaultBinding declared = SpookyActions.holdDeclaration(action);
-            expected.put(action.actionId(),
-                    declared.button() + "|" + declared.mode().name());
-        }
-        assertEquals(expected, defaultsOf(aiming));
+        expected.put("cfx_compat_spookydoors:grab", "leftStickClick|HOLD");
+        expected.put("cfx_compat_spookydoors:push", "leftStickUp|HOLD");
+        expected.put("cfx_compat_spookydoors:pull", "leftStickDown|HOLD");
 
-        Set<String> overridden = new HashSet<String>();
-        for (JsonElement id : aiming.getAsJsonArray("overrideActions")) {
-            overridden.add(id.getAsString());
+        assertEquals(expected, defaultsOf(firstAimingEntry()));
+    }
+
+    @Test
+    void compatConfigCoversExactlyTheDeclaredActions() throws Exception {
+        JsonObject aiming = firstAimingEntry();
+        Set<String> declared = new LinkedHashSet<String>();
+        for (SpookyAction action : SpookyAction.values()) {
+            declared.add(action.actionId());
         }
-        assertEquals(expected.keySet(), overridden);
+
+        // A missing overrideActions entry hides the action from the state page; a stale one
+        // points at an id this mod no longer registers.
+        assertEquals(declared, stringsOf(aiming.getAsJsonArray("overrideActions")));
+        assertEquals(declared, defaultsOf(aiming).keySet());
     }
 
     @Test
     void compatConfigAimsAtDoorsAndOnlyAtDoors() throws Exception {
-        JsonObject aiming = firstAimingEntry();
-        JsonArray targets = aiming.getAsJsonArray("targets");
+        JsonArray targets = firstAimingEntry().getAsJsonArray("targets");
         assertEquals(1, targets.size());
         String target = targets.get(0).getAsString();
         // block: prefix keeps it a block target; the glob covers vanilla and modded doors while
@@ -97,9 +100,6 @@ class SpookyActionsTest {
         for (SpookyAction action : SpookyAction.values()) {
             assertTrue(action.actionId().startsWith(SpookyAction.MOD_ID + ":"),
                     action.actionId());
-            // Native actions are grouped on the Spooky Doors card, so the target mod id (not the
-            // bridge id) is what the grouping must use.
-            assertEquals("spookydoors", SpookyAction.TARGET_MOD_ID);
         }
     }
 
@@ -126,6 +126,14 @@ class SpookyActionsTest {
         JsonObject main = aiming.getAsJsonObject("defaults").getAsJsonObject("main");
         for (Map.Entry<String, JsonElement> entry : main.entrySet()) {
             out.put(entry.getKey(), entry.getValue().getAsString());
+        }
+        return out;
+    }
+
+    private static Set<String> stringsOf(JsonArray array) {
+        Set<String> out = new LinkedHashSet<String>();
+        for (JsonElement element : array) {
+            out.add(element.getAsString());
         }
         return out;
     }

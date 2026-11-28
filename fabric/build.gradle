@@ -73,8 +73,16 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+// DoorSide works on vanilla types (Direction, DoorHingeSide), so the tests need the Minecraft
+// artifact on both their compile and their runtime classpath — the mod itself gets it from
+// Loom's main compile classpath.
+tasks.named('compileTestJava', JavaCompile).configure {
+    classpath += sourceSets.main.compileClasspath
+}
+
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    classpath += sourceSets.main.compileClasspath
 }
 
 processResources {

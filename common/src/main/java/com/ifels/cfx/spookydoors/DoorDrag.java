@@ -10,6 +10,9 @@ import com.ifels.controlflex.api.IControllerState;
 import com.ifels.controlflex.api.IInputProvider;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,9 +28,10 @@ import java.util.Set;
  * press use, accumulate horizontal displacement while held, release — and lets the door mod own
  * the state, sound and server sync. Nothing here touches the door itself.</p>
  *
- * <p>The displacement is horizontal only, because that is the axis Spooky Doors integrates. Its
- * own code flips the sign based on the player's side and the door's hinge, so pushing the stick
- * forward always means "away from me", from either side of the door.</p>
+ * <p>The displacement is horizontal only, because that is the axis Spooky Doors integrates, and
+ * its sign is pre-multiplied by the two flips the door mod applies to a real mouse (player side,
+ * hinge side — see {@link DoorSide}). Only then does pushing mean "away from me" on every door,
+ * instead of only on the ones whose hinge happens to match.</p>
  *
  * <p>What a direction does depends on how it is bound, and the two can be mixed: a stick or
  * trigger integrates its travel as speed, while a face button, bumper or keyboard key — which has
@@ -54,6 +58,7 @@ public final class DoorDrag {
     private static int useButton = GLFW.GLFW_MOUSE_BUTTON_RIGHT;
     private static double virtualX;
     private static double virtualY;
+    private static BlockPos dragPos;
     private static float pushBaseline;
     private static float pullBaseline;
     private static int cooldown;
@@ -109,7 +114,8 @@ public final class DoorDrag {
      * tick so vanilla use does not start, and the gesture is retried after a short cooldown.</p>
      */
     private static void grab(Minecraft mc) {
-        if (DoorTargeting.target(mc) == null) {
+        BlockPos target = DoorTargeting.target(mc);
+        if (target == null) {
             return;
         }
         // saveString() + getKey(String) rather than KeyMapping#getKey(): that getter is a Forge
@@ -134,10 +140,37 @@ public final class DoorDrag {
         }
 
         dragging = true;
+        dragPos = target;
         pushBaseline = baselineOf(SpookyAction.PUSH);
         pullBaseline = baselineOf(SpookyAction.PULL);
-        LOGGER.debug("[{}] grabbed a door, baselines push={} pull={}",
-                SpookyAction.MOD_ID, pushBaseline, pullBaseline);
+        logGrab(mc);
+    }
+
+    /** One line for the "push and pull are swapped" class of report: geometry plus the sign. */
+    private static void logGrab(Minecraft mc) {
+        if (!LOGGER.isDebugEnabled() || mc.level == null) {
+            return;
+        }
+        BlockState state = mc.level.getBlockState(dragPos);
+        Object facing = state.hasProperty(DoorBlock.FACING) ? state.getValue(DoorBlock.FACING) : "?";
+        Object hinge = state.hasProperty(DoorBlock.HINGE) ? state.getValue(DoorBlock.HINGE) : "?";
+        LOGGER.debug("[{}] grabbed a door, baselines push={} pull={} facing={} hinge={} pushSign={}",
+                SpookyAction.MOD_ID, pushBaseline, pullBaseline, facing, hinge, pushSign(mc));
+    }
+
+    /**
+     * Which way the synthetic cursor has to move for "push" to swing this door away from us.
+     *
+     * <p>Recomputed every tick because the player can walk around the door mid-drag, and Spooky
+     * Doors re-evaluates the same two flips on every cursor move.</p>
+     */
+    private static int pushSign(Minecraft mc) {
+        if (dragPos == null || mc.level == null || mc.player == null) {
+            return 1;
+        }
+        return DoorSide.pushSign(mc.level.getBlockState(dragPos),
+                mc.player.getX() - dragPos.getX(),
+                mc.player.getZ() - dragPos.getZ());
     }
 
     /**
@@ -170,7 +203,9 @@ public final class DoorDrag {
         if (displacement == 0.0) {
             return;
         }
-        virtualX += displacement;
+        // Our cursor has no physical left/right, so the hinge and player-side flips Spooky Doors
+        // applies to a real mouse are applied here instead.
+        virtualX += displacement * pushSign(mc);
         MouseHandlerAccessor mouse = (MouseHandlerAccessor) mc.mouseHandler;
         mouse.cfxsd$invokeOnMove(mc.getWindow().getWindow(), virtualX, virtualY);
     }
@@ -180,6 +215,7 @@ public final class DoorDrag {
             return;
         }
         dragging = false;
+        dragPos = null;
         if (mc == null) {
             return;
         }

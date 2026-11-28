@@ -4,8 +4,8 @@ package com.ifels.cfx.spookydoors;
  * The three actions this bridge exposes to ControlFlex.
  *
  * <p>They are registered into the in-game layer only: the door is dragged while the player is
- * playing, never from a screen, so no per-screen table is involved and no {@code compat} JSON
- * has to be installed.</p>
+ * playing, never from a screen, so no per-screen table is involved. The compat JSON this mod
+ * ships carries the aiming-at-a-door state entry that lists them, not per-screen keys.</p>
  *
  * <p>Ids are permanent — they are written into the user's binding file, so renaming one loses
  * that binding.</p>

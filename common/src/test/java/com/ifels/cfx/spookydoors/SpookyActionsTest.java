@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.ifels.controlflex.api.ActionLayer;
 import com.ifels.controlflex.api.ActionRegistration;
+import com.ifels.controlflex.api.TriggerMode;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
@@ -81,6 +82,23 @@ class SpookyActionsTest {
         for (SpookyAction action : SpookyAction.values()) {
             assertTrue(action.actionId().startsWith(SpookyAction.MOD_ID + ":"),
                     action.actionId());
+        }
+    }
+
+    @Test
+    void holdStyleModesStepEveryTickAndOneShotsStepOnce() {
+        // The step size differs by mode (5% vs 15%), so this classification decides how far a
+        // press moves the door. Latching modes belong with the held ones: the action stays active
+        // until it is turned off, and the door has to keep moving for that whole time.
+        for (TriggerMode mode : new TriggerMode[]{
+                TriggerMode.HOLD, TriggerMode.DELAY_HOLD, TriggerMode.LONG_HOLD,
+                TriggerMode.DOUBLE_HOLD, TriggerMode.TOGGLE, TriggerMode.DOUBLE_TOGGLE}) {
+            assertTrue(SpookyActions.isHoldLike(mode), mode.name());
+        }
+        for (TriggerMode mode : new TriggerMode[]{
+                TriggerMode.PRESS, TriggerMode.RELEASE, TriggerMode.TAP, TriggerMode.DELAY_PRESS,
+                TriggerMode.LONG_PRESS, TriggerMode.DOUBLE_PRESS, TriggerMode.DOUBLE_TAP}) {
+            assertFalse(SpookyActions.isHoldLike(mode), mode.name());
         }
     }
 

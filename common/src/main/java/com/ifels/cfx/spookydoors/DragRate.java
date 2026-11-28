@@ -6,17 +6,17 @@ package com.ifels.cfx.spookydoors;
  * <p>Spooky Doors integrates {@code openness += dx * 0.005} on every {@code MouseHandler.onMove},
  * so {@value #FULL_TRAVEL_UNITS} units of {@code dx} travel the whole 0..1 range.</p>
  *
- * <p>Both input models advance on every tick, so a binding that stays held keeps the door
- * moving:</p>
+ * <p>How far one tick moves the door depends on what the action is bound to and how it triggers:</p>
  * <ul>
- *   <li><b>Analog</b> (stick direction, trigger): the deflection above the grab-time baseline
- *       is a speed. Pushing halfway opens the door at half pace and letting go leaves it where it
+ *   <li><b>Analog</b> (stick direction, trigger): the deflection above the grab-time baseline is a
+ *       speed. Pushing halfway opens the door at half pace and letting go leaves it where it
  *       stopped — the same "hold and drag" feel the mouse has.</li>
- *   <li><b>Digital</b> (face button, bumper, keyboard key): there is no travel to read, so a held
- *       button counts as full deflection and pushes at {@value #MAX_UNITS_PER_SECOND} units per
- *       second until it is released. A one-tick tap is therefore
- *       {@value #DIGITAL_FRACTION_OF_TRAVEL} of the travel: enough to see the door move, not
- *       enough to overshoot.</li>
+ *   <li><b>Digital, hold-style</b> (face button, bumper, key bound as HOLD): there is no travel to
+ *       read, so a held button advances {@value #HOLD_STEP_FRACTION} of the travel every tick —
+ *       a full swing takes about a second, slow enough to stop where you want.</li>
+ *   <li><b>Digital, one-shot</b> (PRESS, TAP, …): the action lasts a single tick, and that tick is
+ *       worth {@value #TAP_STEP_FRACTION} of the travel. One press is one visible nudge, and the
+ *       size stays put no matter how the hold rate is tuned.</li>
  * </ul>
  *
  * <p>For the analog side the baseline is the stick position captured when the door was grabbed.
@@ -30,7 +30,7 @@ final class DragRate {
     /** {@code 1 / 0.005}: the displacement that takes the door from closed to fully open. */
     static final double FULL_TRAVEL_UNITS = 200.0;
 
-    /** Full deflection is meant to slam the door in about a third of a second. */
+    /** Full analog deflection is meant to slam the door in about a third of a second. */
     static final double MAX_UNITS_PER_SECOND = 600.0;
 
     /** Below 1 this would make small deflections faster; above it, fine control near centre. */
@@ -39,11 +39,15 @@ final class DragRate {
     /** One tick of displacement at 20 ticks per second. */
     static final double TICK_SECONDS = 0.05;
 
-    /** A held digital button pushes at the speed a fully deflected stick would. */
-    static final double DIGITAL_UNITS_PER_TICK = MAX_UNITS_PER_SECOND * TICK_SECONDS;
+    /** Per-tick stride of a held digital button: 5% of the travel, so a second end to end. */
+    static final double HOLD_STEP_FRACTION = 0.05;
 
-    /** What a single-tick tap moves the door: {@value #DIGITAL_UNITS_PER_TICK} of 200 units. */
-    static final double DIGITAL_FRACTION_OF_TRAVEL = DIGITAL_UNITS_PER_TICK / FULL_TRAVEL_UNITS;
+    static final double HOLD_STEP_UNITS = FULL_TRAVEL_UNITS * HOLD_STEP_FRACTION;
+
+    /** What a one-shot binding moves on its single tick; deliberately bigger than a hold tick. */
+    static final double TAP_STEP_FRACTION = 0.15;
+
+    static final double TAP_STEP_UNITS = FULL_TRAVEL_UNITS * TAP_STEP_FRACTION;
 
     private DragRate() {
     }
@@ -57,19 +61,19 @@ final class DragRate {
     /**
      * Unsigned displacement one direction contributes on this tick.
      *
-     * <p>An analog binding integrates its deflection, so a light press creeps and a full press
-     * moves a third of the door per second. A digital binding has no deflection to integrate, so
-     * it stands in for full deflection while it is held and contributes nothing once released.</p>
-     *
-     * @param analog whether the bound button reports 0..1 travel
-     * @param delta  deflection above the grab baseline; ignored for digital
-     * @param down   whether the binding is pressed now; ignored for analog
+     * @param analog   whether the bound button reports 0..1 travel
+     * @param delta    deflection above the grab baseline; ignored for digital
+     * @param down     whether the binding is pressed now; ignored for analog
+     * @param holdLike whether the binding stays active while held; ignored for analog
      */
-    static double oneTick(boolean analog, float delta, boolean down) {
+    static double oneTick(boolean analog, float delta, boolean down, boolean holdLike) {
         if (analog) {
             return curve(delta) * TICK_SECONDS;
         }
-        return down ? DIGITAL_UNITS_PER_TICK : 0.0;
+        if (!down) {
+            return 0.0;
+        }
+        return holdLike ? HOLD_STEP_UNITS : TAP_STEP_UNITS;
     }
 
     /** Signed displacement: pushing is positive, pulling is negative, both cancel out. */

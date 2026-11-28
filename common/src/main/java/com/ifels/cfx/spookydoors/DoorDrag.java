@@ -31,8 +31,8 @@ import java.util.Set;
  *
  * <p>What a direction does depends on how it is bound, and the two can be mixed: a stick or
  * trigger integrates its travel as speed, while a face button, bumper or keyboard key — which has
- * no travel to read — counts as full deflection for as long as it is held. Either way the door
- * keeps moving until the input is released. See {@link DragRate}.</p>
+ * no travel to read — steps a fixed fraction per tick while held, or a single bigger step when it
+ * is bound as a one-shot. See {@link DragRate}.</p>
  */
 public final class DoorDrag {
 
@@ -156,10 +156,15 @@ public final class DoorDrag {
         boolean pushDown = SpookyActions.isActive(SpookyAction.PUSH);
         boolean pullDown = SpookyActions.isActive(SpookyAction.PULL);
 
+        // Only needed for digital bindings, and only to pick the step size: a HOLD keeps the
+        // action active for as long as it is held, a one-shot lasts a single tick.
+        boolean pushHold = SpookyActions.isBoundAsHold(SpookyAction.PUSH);
+        boolean pullHold = SpookyActions.isBoundAsHold(SpookyAction.PULL);
+
         double pushUnits = DragRate.oneTick(pushAnalog,
-                DragRate.delta(magnitudeOf(state, pushButton), pushBaseline), pushDown);
+                DragRate.delta(magnitudeOf(state, pushButton), pushBaseline), pushDown, pushHold);
         double pullUnits = DragRate.oneTick(pullAnalog,
-                DragRate.delta(magnitudeOf(state, pullButton), pullBaseline), pullDown);
+                DragRate.delta(magnitudeOf(state, pullButton), pullBaseline), pullDown, pullHold);
 
         double displacement = DragRate.signed(pushUnits, pullUnits);
         if (displacement == 0.0) {

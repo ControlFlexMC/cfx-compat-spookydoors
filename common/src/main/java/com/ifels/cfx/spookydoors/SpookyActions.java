@@ -2,8 +2,11 @@ package com.ifels.cfx.spookydoors;
 
 import com.ifels.controlflex.api.ActionLayer;
 import com.ifels.controlflex.api.ActionRegistration;
+import com.ifels.controlflex.api.ControlFlexApi;
+import com.ifels.controlflex.api.IActionBindingProvider;
 import com.ifels.controlflex.api.IActionRegistrar;
 import com.ifels.controlflex.api.IControlFlexAction;
+import com.ifels.controlflex.api.TriggerMode;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -45,6 +48,35 @@ public final class SpookyActions {
     public static boolean isActive(SpookyAction action) {
         IControlFlexAction handle = HANDLES.get(action);
         return handle != null && handle.isActive();
+    }
+
+    /**
+     * Whether the binding in effect right now is a hold-style trigger.
+     *
+     * <p>{@code isActive()} already tells us how long the action lasts — latched for HOLD, one
+     * tick for PRESS — but not how far one step should be, and the two want different steps. The
+     * mode comes from the resolved binding (per layer, per state), so this follows whatever the
+     * player configured instead of assuming HOLD.</p>
+     *
+     * <p>Unbound and API-not-ready both answer {@code false}, which only means "one-shot"; the
+     * action cannot be active in either case, so the step is never spent.</p>
+     */
+    static boolean isBoundAsHold(SpookyAction action) {
+        IActionBindingProvider provider = ControlFlexApi.getActionBindingProvider();
+        if (provider == null) {
+            return false;
+        }
+        return isHoldLike(provider.getActiveBinding(action.actionId()).getTriggerMode());
+    }
+
+    /** Modes that stay active while the button is down (or latched on, for the toggles). */
+    static boolean isHoldLike(TriggerMode mode) {
+        return mode == TriggerMode.HOLD
+                || mode == TriggerMode.DELAY_HOLD
+                || mode == TriggerMode.LONG_HOLD
+                || mode == TriggerMode.DOUBLE_HOLD
+                || mode == TriggerMode.TOGGLE
+                || mode == TriggerMode.DOUBLE_TOGGLE;
     }
 
     /**

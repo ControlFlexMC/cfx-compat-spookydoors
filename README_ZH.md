@@ -25,9 +25,9 @@ Spooky Doors 没有开放"操作这扇门"的 API。它自己监听 `MouseHandle
 * 注入按下之前，`DoorTargeting` 会把门模组自己的抓取条件重新核一遍——`spookydoors:doors` /
   `excluded_doors` 标签、门类型、`haunts_doors` / `exorcises_doors` 物品，以及每扇门的 `spooky`
   标记（反射读取）。被拒的按下会落到原版使用逻辑上，变成放方块，所以这种按下绝不能发。
-* `DragRate` 把输入换算成鼠标位移，两种输入都是每 tick 推进：模拟输入（摇杆方向、扳机）按速度
-  积分按下量；数字输入（面板键、键盘）没有行程可读，按住即视为满偏转，以满杆的速度持续推拉，
-  松手才停。
+* `DragRate` 把输入换算成鼠标位移。模拟输入（摇杆方向、扳机）按速度积分按下量；数字输入
+  （面板键、键盘）没有行程可读，步长由触发模式决定：HOLD 每 tick 推进 5% 行程（全程约一秒），
+  PRESS 这类单次模式在触发的那一 tick 走 15%。
 * 全部逻辑挂在 ControlFlex 的 SPI 插件（`SpookyDoorsPlugin`）上，ControlFlex 没就绪就什么都不做。
 
 ## 动作

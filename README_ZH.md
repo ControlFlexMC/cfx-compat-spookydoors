@@ -31,13 +31,32 @@ Spooky Doors 没有开放"操作这扇门"的 API。它自己监听 `MouseHandle
 
 ## 动作
 
-注册在 Spooky Doors 的适配卡下，均属游戏内层：
+以 ControlFlex 原生动作注册（不是伪 `KeyMapping`，不进原版按键页、不写全局键状态），分组到
+**Spooky Doors**，只在该适配卡里可见：
 
-| 动作 | Id | 默认绑定 |
-|---|---|---|
-| 抓住门 | `cfx_compat_spookydoors:grab` | 左摇杆按下，按住 |
-| 推门 | `cfx_compat_spookydoors:push` | 左摇杆上，按住 |
-| 拉门 | `cfx_compat_spookydoors:pull` | 左摇杆下，按住 |
+| 动作 | Id |
+|---|---|
+| 抓住门 | `cfx_compat_spookydoors:grab` |
+| 推门 | `cfx_compat_spookydoors:push` |
+| 拉门 | `cfx_compat_spookydoors:pull` |
+
+## 绑定
+
+三个动作注册时带主层 HOLD 默认绑定，都落在左摇杆上：
+
+| 动作 | 默认绑定 |
+|---|---|
+| 抓住门 | 左摇杆按下，按住 |
+| 推门 | 左摇杆前，按住 |
+| 拉门 | 左摇杆后，按住 |
+
+松开摇杆即松手：HOLD 到期动作失效，桥随后补发对应的鼠标抬起。这些绑定只在准星对着门时才有意义
+——抓取在注入按下之前就会先被拒，推/拉也只在抓住门期间参与积分——所以和移动共用左摇杆没有代价。
+
+jar 内另带 `assets/cfx_compat_spookydoors/compat/spookydoors.json`，插件会把它安装到
+`config/controlflex/compat/mods/`。它声明一条 **aiming** 状态条目（`block:*:*_door`），默认值与
+上面三项一致，因此会出现在 ControlFlex 的状态页（模组适配 → Spooky Doors → aiming）里，可以按状态
+单独改键；准星落在门上时，状态绑定优先于基础绑定。
 
 推/拉的幅度取自绑定轴本身而不是动作，所以把推门改绑到扳机，它自然就有扳机行程。
 
@@ -47,7 +66,7 @@ Spooky Doors 没有开放"操作这扇门"的 API。它自己监听 `MouseHandle
 |---|---|
 | Minecraft | 1.20.1 |
 | 加载器 | Forge 47+ / Fabric Loader 0.15.11+（需 Fabric API） |
-| ControlFlex | 0.9.0+——低于 0.9.3.0 时桥能启动但自动禁用（读不到模拟量） |
+| ControlFlex | 0.9.0+——低于 API 0.9.2.4 时桥能启动但不注册动作（没有原生动作 API，也读不到模拟量） |
 | Spooky Doors | 1.20+——**可选**，没有它动作只是永远瞄不到门 |
 
 ## 工程结构

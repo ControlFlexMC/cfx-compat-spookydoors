@@ -62,6 +62,10 @@ dependencies {
 
     annotationProcessor "org.spongepowered:mixin:${mixin_processor_version}:processor"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    // The shared tests check the declared action defaults against the bundled compat config; both
+    // the API types and the JSON parser have to be on the test classpath for that.
+    testImplementation "com.github.ControlFlexMC:control-flex-api:${controlflex_api_version}"
+    testImplementation 'com.google.code.gson:gson:2.10.1'
 }
 
 tasks.withType(JavaCompile).configureEach {

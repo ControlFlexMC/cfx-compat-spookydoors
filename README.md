@@ -35,13 +35,35 @@ dependencies, and a failure here is contained instead of affecting every player.
 
 ## Actions
 
-Registered under the Spooky Doors adaptation card, all in the in-game layer:
+Registered as ControlFlex-native actions (no `KeyMapping`, nothing in the vanilla controls screen),
+grouped under **Spooky Doors** — they are listed on that adaptation card and nowhere else:
 
-| Action | Id | Default |
-|---|---|---|
-| Grab Door | `cfx_compat_spookydoors:grab` | left stick click, hold |
-| Push Door | `cfx_compat_spookydoors:push` | left stick up, hold |
-| Pull Door | `cfx_compat_spookydoors:pull` | left stick down, hold |
+| Action | Id |
+|---|---|
+| Grab Door | `cfx_compat_spookydoors:grab` |
+| Push Door | `cfx_compat_spookydoors:push` |
+| Pull Door | `cfx_compat_spookydoors:pull` |
+
+## Bindings
+
+The actions are registered with main-layer HOLD defaults on the left stick:
+
+| Action | Default |
+|---|---|
+| Grab Door | left stick click, hold |
+| Push Door | left stick forward, hold |
+| Pull Door | left stick back, hold |
+
+Releasing the stick lets go: HOLD ends the action and the bridge injects the matching mouse
+release. The bindings are inert unless the crosshair is on a door — the grab is rejected before
+any press is injected, and push/pull are only integrated while a grab is held — so sharing the
+left stick with movement costs nothing.
+
+The jar also carries `assets/cfx_compat_spookydoors/compat/spookydoors.json`, which the plugin
+installs into `config/controlflex/compat/mods/`. It declares an **aiming** state entry
+(`block:*:*_door`) that mirrors the same three defaults, so they show up on ControlFlex's state
+page (Mod Adaptation → Spooky Doors → aiming) and can be rebound per state; while the crosshair
+rests on a door, the state binding wins over the base one.
 
 Push/pull magnitude comes from the bound axis, not from the action, so moving push onto a trigger
 gives it trigger travel automatically.
@@ -52,7 +74,7 @@ gives it trigger travel automatically.
 |---|---|
 | Minecraft | 1.20.1 |
 | Loader | Forge 47+ / Fabric Loader 0.15.11+ (Fabric API) |
-| ControlFlex | 0.9.0+ — below 0.9.3.0 the bridge starts but stays disabled (no analog magnitudes) |
+| ControlFlex | 0.9.0+ — below API 0.9.2.4 the bridge starts but registers no actions (no native actions, no analog magnitudes) |
 | Spooky Doors | 1.20+ — **optional**, the actions simply never target a door without it |
 
 ## Project layout

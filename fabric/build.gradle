@@ -64,6 +64,9 @@ dependencies {
 
     annotationProcessor "org.spongepowered:mixin:${mixin_processor_version}:processor"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    // Same shared tests as :forge — the API types and the JSON parser are needed at test runtime.
+    testImplementation "com.github.ControlFlexMC:control-flex-api:${controlflex_api_version}"
+    testImplementation 'com.google.code.gson:gson:2.10.1'
 }
 
 tasks.withType(JavaCompile).configureEach {

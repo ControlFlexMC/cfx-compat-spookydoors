@@ -22,9 +22,10 @@ dependencies, and a failure here is contained instead of affecting every player.
 
 * `MouseHandlerAccessor` (a mixin accessor/invoker on `MouseHandler`) reaches the same private
   `onPress` / `onMove` calls Spooky Doors mixes into. `onMove` takes **absolute** cursor coordinates,
-  so the bridge keeps its own virtual cursor, seeded from the real one at grab time. The delta is
-  pre-signed with the door's hinge and the player's side (`DoorSide`), because the door mod flips a
-  real mouse delta by both — skip that and push/pull swap on left-hinged doors.
+  so the bridge keeps its own virtual cursor, seeded from the real one at grab time. The delta
+  carries the door's hinge (`DoorSide`), because the door mod flips a mouse delta for a left hinge;
+  its other flip — player side — is deliberately left alone, and that is what makes push close the
+  door from behind and pull open it.
 * Before injecting a press, `DoorTargeting` re-checks every condition of the door mod's own grab
   check — the `spookydoors:doors` / `excluded_doors` tags, the door type, the `haunts_doors` /
   `exorcises_doors` items, and the per-door `spooky` flag (read by reflection). A press the door mod

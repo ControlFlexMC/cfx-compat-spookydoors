@@ -28,10 +28,10 @@ import java.util.Set;
  * press use, accumulate horizontal displacement while held, release — and lets the door mod own
  * the state, sound and server sync. Nothing here touches the door itself.</p>
  *
- * <p>The displacement is horizontal only, because that is the axis Spooky Doors integrates, and
- * its sign is pre-multiplied by the two flips the door mod applies to a real mouse (player side,
- * hinge side — see {@link DoorSide}). Only then does pushing mean "away from me" on every door,
- * instead of only on the ones whose hinge happens to match.</p>
+ * <p>The displacement is horizontal only, because that is the axis Spooky Doors integrates. Its
+ * sign carries the door's hinge (see {@link DoorSide}) so that two doors differing only in hinge
+ * react the same way, while the door mod's own player-side flip is left intact — that one is what
+ * makes push close the door from behind and pull open it.</p>
  *
  * <p>What a direction does depends on how it is bound, and the two can be mixed: a stick or
  * trigger integrates its travel as speed, while a face button, bumper or keyboard key — which has
@@ -58,7 +58,7 @@ public final class DoorDrag {
     private static int useButton = GLFW.GLFW_MOUSE_BUTTON_RIGHT;
     private static double virtualX;
     private static double virtualY;
-    private static BlockPos dragPos;
+    private static int dragSign = 1;
     private static float pushBaseline;
     private static float pullBaseline;
     private static int cooldown;
@@ -140,37 +140,23 @@ public final class DoorDrag {
         }
 
         dragging = true;
-        dragPos = target;
+        BlockState doorState = mc.level.getBlockState(target);
+        // The hinge cannot change while the drag lasts, so the sign is fixed for this grab.
+        dragSign = DoorSide.pushSign(doorState);
         pushBaseline = baselineOf(SpookyAction.PUSH);
         pullBaseline = baselineOf(SpookyAction.PULL);
-        logGrab(mc);
+        logGrab(doorState);
     }
 
     /** One line for the "push and pull are swapped" class of report: geometry plus the sign. */
-    private static void logGrab(Minecraft mc) {
-        if (!LOGGER.isDebugEnabled() || mc.level == null) {
+    private static void logGrab(BlockState state) {
+        if (!LOGGER.isDebugEnabled()) {
             return;
         }
-        BlockState state = mc.level.getBlockState(dragPos);
         Object facing = state.hasProperty(DoorBlock.FACING) ? state.getValue(DoorBlock.FACING) : "?";
         Object hinge = state.hasProperty(DoorBlock.HINGE) ? state.getValue(DoorBlock.HINGE) : "?";
         LOGGER.debug("[{}] grabbed a door, baselines push={} pull={} facing={} hinge={} pushSign={}",
-                SpookyAction.MOD_ID, pushBaseline, pullBaseline, facing, hinge, pushSign(mc));
-    }
-
-    /**
-     * Which way the synthetic cursor has to move for "push" to swing this door away from us.
-     *
-     * <p>Recomputed every tick because the player can walk around the door mid-drag, and Spooky
-     * Doors re-evaluates the same two flips on every cursor move.</p>
-     */
-    private static int pushSign(Minecraft mc) {
-        if (dragPos == null || mc.level == null || mc.player == null) {
-            return 1;
-        }
-        return DoorSide.pushSign(mc.level.getBlockState(dragPos),
-                mc.player.getX() - dragPos.getX(),
-                mc.player.getZ() - dragPos.getZ());
+                SpookyAction.MOD_ID, pushBaseline, pullBaseline, facing, hinge, dragSign);
     }
 
     /**
@@ -203,9 +189,10 @@ public final class DoorDrag {
         if (displacement == 0.0) {
             return;
         }
-        // Our cursor has no physical left/right, so the hinge and player-side flips Spooky Doors
-        // applies to a real mouse are applied here instead.
-        virtualX += displacement * pushSign(mc);
+        // Our cursor has no physical left/right, so the hinge flip Spooky Doors would apply to a
+        // real mouse is applied here instead. Its other flip (player side) is deliberately left
+        // alone: that one already makes push close the door when you stand behind it.
+        virtualX += displacement * dragSign;
         MouseHandlerAccessor mouse = (MouseHandlerAccessor) mc.mouseHandler;
         mouse.cfxsd$invokeOnMove(mc.getWindow().getWindow(), virtualX, virtualY);
     }
@@ -215,7 +202,7 @@ public final class DoorDrag {
             return;
         }
         dragging = false;
-        dragPos = null;
+        dragSign = 1;
         if (mc == null) {
             return;
         }

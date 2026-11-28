@@ -1,72 +1,46 @@
 package com.ifels.cfx.spookydoors;
 
-import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DoorHingeSide;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * The sign that keeps "push" meaning "away from me".
+ * Only the hinge half of Spooky Doors' sign handling is compensated.
  *
- * <p>Spooky Doors folds two flips into the cursor delta it receives: one when the player stands on
- * the side the door faces, one for a left hinge. Only the hinge flip was missing here, so
- * right-hinged doors looked correct (their flip is the identity unless the player is also on the
- * facing side) while left-hinged ones pushed the wrong way.</p>
+ * <p>Its other flip — "player stands on the side the door faces" — is what makes push and pull
+ * swap when you walk around the door, and that is the wanted behaviour: from behind, pushing the
+ * panel moves it into the doorway. Compensating both cancels it, which is how push ended up
+ * opening the door from either side.</p>
  */
 class DoorSideTest {
 
-    private static final double FRONT = -1.0;
-    private static final double BACK = 1.0;
-
     @Test
-    void rightHingedDoorFromTheBackPushesPositive() {
-        // The configuration that looked right before the fix: this is the anchor the report gives.
-        assertEquals(1, DoorSide.pushSign(Direction.NORTH, DoorHingeSide.RIGHT, 0.0, BACK));
+    void rightHingedDoorPushesPositive() {
+        // The configuration both reports agree on: push opens.
+        assertEquals(1, DoorSide.pushSign(DoorHingeSide.RIGHT));
     }
 
     @Test
-    void leftHingedDoorFromTheSameSpotFlips() {
-        // The reported bug: same player position, same facing, only the hinge differs.
-        assertEquals(-1, DoorSide.pushSign(Direction.NORTH, DoorHingeSide.LEFT, 0.0, BACK));
+    void leftHingedDoorFlips() {
+        // Without this, a left-hinged door opened on push and closed on pull (first report).
+        assertEquals(-1, DoorSide.pushSign(DoorHingeSide.LEFT));
     }
 
     @Test
-    void facingSideFlipsAsWell() {
-        // Standing on the side the door faces inverts the pair again — this is the flip a real
-        // mouse absorbs by simply being dragged the other way.
-        assertEquals(-1, DoorSide.pushSign(Direction.NORTH, DoorHingeSide.RIGHT, 0.0, FRONT));
-        assertEquals(1, DoorSide.pushSign(Direction.NORTH, DoorHingeSide.LEFT, 0.0, FRONT));
+    void theTwoHingesAreMirrorImages() {
+        // Deliberate: the sign depends on the hinge only. The door mod's other flip (player side)
+        // is left intact, so push means "panel away from me" — open from the front, close from
+        // behind. Adding a player-side flip here cancelled that and push opened from both sides
+        // (the second report).
+        assertEquals(-DoorSide.pushSign(DoorHingeSide.RIGHT),
+                DoorSide.pushSign(DoorHingeSide.LEFT));
+        assertEquals(1, Math.abs(DoorSide.pushSign(DoorHingeSide.LEFT)));
     }
 
     @Test
-    void everyFacingUsesItsOwnAxis() {
-        // NORTH/SOUTH compare Z around the door, EAST/WEST compare X — the same four branches
-        // Spooky Doors takes, so the "facing" side is the side the door looks at.
-        assertEquals(1, DoorSide.pushSign(Direction.SOUTH, DoorHingeSide.RIGHT, 0.0, FRONT));
-        assertEquals(-1, DoorSide.pushSign(Direction.SOUTH, DoorHingeSide.RIGHT, 0.0, BACK));
-        assertEquals(1, DoorSide.pushSign(Direction.WEST, DoorHingeSide.RIGHT, BACK, 0.0));
-        assertEquals(-1, DoorSide.pushSign(Direction.WEST, DoorHingeSide.RIGHT, FRONT, 0.0));
-        assertEquals(1, DoorSide.pushSign(Direction.EAST, DoorHingeSide.RIGHT, FRONT, 0.0));
-        assertEquals(-1, DoorSide.pushSign(Direction.EAST, DoorHingeSide.RIGHT, BACK, 0.0));
-    }
-
-    @Test
-    void theTwoFlipsAreIndependentNegations() {
-        double[][] offsets = {{0.0, -2.0}, {0.0, 2.0}, {-2.0, 0.0}, {2.0, 0.0}};
-        for (Direction facing : new Direction[]{
-                Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST}) {
-            for (double[] offset : offsets) {
-                int right = DoorSide.pushSign(facing, DoorHingeSide.RIGHT, offset[0], offset[1]);
-                int left = DoorSide.pushSign(facing, DoorHingeSide.LEFT, offset[0], offset[1]);
-                assertEquals(-right, left, facing + " @" + offset[0] + "," + offset[1]);
-                assertEquals(1, Math.abs(right));
-            }
-        }
-    }
-
-    @Test
-    void aNonDoorStateFallsBackToTheOldBehaviour() {
-        assertEquals(1, DoorSide.pushSign(null, 0.0, 0.0));
+    void aNonDoorStateFallsBackToPositive() {
+        assertEquals(1, DoorSide.pushSign((BlockState) null));
     }
 }

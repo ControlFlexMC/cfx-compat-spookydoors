@@ -21,8 +21,9 @@ Spooky Doors 没有开放"操作这扇门"的 API。它自己监听 `MouseHandle
 
 * `MouseHandlerAccessor`（对 `MouseHandler` 的 mixin accessor/invoker）直达 Spooky Doors 注入的
   私有 `onPress` / `onMove`。`onMove` 收的是**绝对**光标坐标，因此桥自己维护一个虚拟光标，抓门
-  那一刻用真实坐标做种子，第一次移动才不会跳。位移的符号由门的合页方向和玩家站位预先翻好
-  （`DoorSide`），因为门模组对真实鼠标的位移也会做这两次翻转——少一次，左合页门的推拉就是反的。
+  那一刻用真实坐标做种子，第一次移动才不会跳。位移的符号只带门的合页方向（`DoorSide`），因为门
+  模组对左合页会翻转鼠标位移；它的另一次翻转（玩家站位）刻意不补偿——正因如此，站在门背后推是关门、
+  拉才是开门。
 * 注入按下之前，`DoorTargeting` 会把门模组自己的抓取条件重新核一遍——`spookydoors:doors` /
   `excluded_doors` 标签、门类型、`haunts_doors` / `exorcises_doors` 物品，以及每扇门的 `spooky`
   标记（反射读取）。被拒的按下会落到原版使用逻辑上，变成放方块，所以这种按下绝不能发。

@@ -1,0 +1,103 @@
+plugins {
+    id 'fabric-loom'
+}
+
+base {
+    archivesName = 'cfx-compat-spookydoors'
+}
+
+version = "${mod_version}-mc${minecraft_version}-fabric"
+group = maven_group
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
+}
+
+loom {
+    mixin {
+        // Same refmap name as the Forge side, so common/'s single mixin config works unchanged.
+        defaultRefmapName = 'cfx_compat_spookydoors.refmap.json'
+    }
+
+    runs {
+        client {
+            client()
+            runDir 'run-fabric'
+        }
+    }
+}
+
+// Same shared tree as :forge — see that build script for why common/ is not a subproject.
+sourceSets {
+    main {
+        java.srcDir(rootProject.file('common/src/main/java'))
+        resources.srcDir(rootProject.file('common/src/main/resources'))
+    }
+    test {
+        java.srcDir(rootProject.file('common/src/test/java'))
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+    // SpongePowered repo: resolves the SpongeMixin annotation processor on Fabric.
+    maven {
+        name = 'SpongePowered'
+        url = 'https://repo.spongepowered.org/repository/maven-public/'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+
+    // ControlFlex API (plain Java, loader-agnostic), resolved from JitPack.
+    compileOnly "com.github.ControlFlexMC:control-flex-api:${controlflex_api_version}"
+    compileOnly 'org.jetbrains:annotations:24.0.1'
+
+    annotationProcessor "org.spongepowered:mixin:${mixin_processor_version}:processor"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
+}
+
+processResources {
+    def expandProps = [
+        'mod_id'                  : mod_id,
+        'mod_name'                : mod_name,
+        'mod_version'             : mod_version,
+        'mod_authors'             : mod_authors,
+        'mod_license'             : mod_license,
+        'mod_description'         : mod_description,
+        'minecraft_version'       : minecraft_version,
+        'fabric_loader_version'   : fabric_loader_version,
+        'java_version'            : java_version,
+        'controlflex_mod_id'      : controlflex_mod_id,
+        'target_mod_id'           : target_mod_id,
+        'controlflex_version_range': controlflex_version_range,
+        'target_mod_version_range' : target_mod_version_range,
+    ]
+
+    filesMatching(['fabric.mod.json']) {
+        expand expandProps
+    }
+
+    inputs.properties(expandProps)
+}
+
+jar {
+    from(rootProject.file('LICENSE')) { rename { "${it}_${mod_id}" } }
+}

@@ -34,6 +34,21 @@ legacyForge {
     }
 }
 
+// The bridge lives in common/ and is loader-agnostic: the door logic, the ControlFlex SPI
+// plugin and the MouseHandler accessor mixin are identical on both loaders. Only this
+// subproject's entry point, mods.toml and pack.mcmeta are Forge-specific.
+sourceSets {
+    main {
+        java.srcDir(rootProject.file('common/src/main/java'))
+        resources.srcDir(rootProject.file('common/src/main/resources'))
+    }
+    test {
+        java.srcDir(rootProject.file('common/src/test/java'))
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
 repositories {
     mavenLocal()
     mavenCentral()
@@ -41,8 +56,8 @@ repositories {
 }
 
 dependencies {
-    // Published locally from ../control-flex-api (0.9.3.0 introduces AnalogValues).
-    compileOnly 'com.github.ControlFlexMC:control-flex-api:0.9.3.0'
+    // ControlFlex API (plain Java, loader-agnostic), resolved from JitPack.
+    compileOnly "com.github.ControlFlexMC:control-flex-api:${controlflex_api_version}"
     compileOnly 'org.jetbrains:annotations:24.0.1'
 
     annotationProcessor "org.spongepowered:mixin:${mixin_processor_version}:processor"
@@ -58,6 +73,8 @@ tasks.named('test', Test).configure {
 }
 
 processResources {
+    // Only this loader's own metadata is expanded; common/ resources are copied verbatim so
+    // both jars carry byte-identical lang files and service descriptor.
     def expandProps = [
         'mod_id'                  : mod_id,
         'mod_name'                : mod_name,
@@ -73,10 +90,11 @@ processResources {
         'java_version'            : java_version,
         'controlflex_mod_id'      : controlflex_mod_id,
         'target_mod_id'           : target_mod_id,
-        'target_mod_version_range': target_mod_version_range,
+        'controlflex_version_range_forge': controlflex_version_range_forge,
+        'target_mod_version_range_forge' : target_mod_version_range_forge,
     ]
 
-    filesMatching(['pack.mcmeta', 'META-INF/mods.toml', '*.mixins.json']) {
+    filesMatching(['pack.mcmeta', 'META-INF/mods.toml']) {
         expand expandProps
     }
 
@@ -90,6 +108,6 @@ jar {
         ])
     }
 
-    from(file('LICENSE')) { rename { "${it}_${mod_id}" } }
+    from(rootProject.file('LICENSE')) { rename { "${it}_${mod_id}" } }
     finalizedBy 'reobfJar'
 }

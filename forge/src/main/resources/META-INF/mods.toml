@@ -27,15 +27,15 @@ side="CLIENT"
 [[dependencies.${mod_id}]]
 modId="${controlflex_mod_id}"
 mandatory=true
-versionRange="[0.9.0,)"
+versionRange="${controlflex_version_range_forge}"
 ordering="AFTER"
 side="CLIENT"
 
-# Optional on purpose: without Spooky Doors the four actions simply never target anything,
+# Optional on purpose: without Spooky Doors the three actions simply never target anything,
 # so a modpack that drops the door mod does not fail to start.
 [[dependencies.${mod_id}]]
 modId="${target_mod_id}"
 mandatory=false
-versionRange="${target_mod_version_range}"
+versionRange="${target_mod_version_range_forge}"
 ordering="AFTER"
 side="CLIENT"

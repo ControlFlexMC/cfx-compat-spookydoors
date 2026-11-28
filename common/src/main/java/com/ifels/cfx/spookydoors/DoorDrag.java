@@ -10,7 +10,6 @@ import com.ifels.controlflex.api.IControllerState;
 import com.ifels.controlflex.api.IInputProvider;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.event.TickEvent;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,8 +70,15 @@ public final class DoorDrag {
         }
     }
 
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !enabled) {
+    /**
+     * One client tick of the drag engine.
+     *
+     * <p>Called from each loader's entry point at the end of the client tick — Forge through
+     * {@code TickEvent.ClientTickEvent}, Fabric through {@code ClientTickEvents.END_CLIENT_TICK}.
+     * Nothing else about the tick belongs here, so this stays in the loader-agnostic half.</p>
+     */
+    public static void tick() {
+        if (!enabled) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
@@ -107,7 +113,9 @@ public final class DoorDrag {
         if (DoorTargeting.target(mc) == null) {
             return;
         }
-        InputConstants.Key useKey = mc.options.keyUse.getKey();
+        // saveString() + getKey(String) rather than KeyMapping#getKey(): that getter is a Forge
+        // patch, while the serialized name is vanilla API and parses back to the same Key.
+        InputConstants.Key useKey = InputConstants.getKey(mc.options.keyUse.saveString());
         if (useKey.getType() != InputConstants.Type.MOUSE) {
             // Use is bound to a keyboard key: there is no mouse button to simulate.
             return;

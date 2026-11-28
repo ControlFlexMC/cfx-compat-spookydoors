@@ -3,6 +3,14 @@
 build/
 # gradle-wrapper.jar is part of the build, so *.jar is deliberately not ignored here.
 
+# Loom / moddev run directories
+run/
+run-fabric/
+run-forge/
+
+# WorkBuddy project data
+.workbuddy/
+
 # IDE
 .idea/
 *.iml
